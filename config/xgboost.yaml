@@ -1,0 +1,42 @@
+# ============================================================
+# xgboost.yaml — Cấu hình XGBoost (bộ phân loại chính)
+# ============================================================
+# Cơ sở lựa chọn: Trong hầu hết bài viết / solution top của cuộc thi
+# Kaggle IEEE-CIS Fraud Detection, XGBoost (đôi khi kết hợp LightGBM/
+# CatBoost) là mô hình cho AUC-ROC cao nhất trên dataset này (~0.94-0.96
+# ở các solution top, ~0.885-0.93 ở baseline đơn giản hơn), đồng thời có
+# temporal stability tốt hơn các mô hình deep learning khi có drift theo
+# thời gian (xem "RGF-AFFD" benchmark 2026: XGBoost AUC drift chỉ
+# -0.0017 so với -0.0626 của LSTM). Đây là lý do XGBoost được chọn làm
+# bộ phân loại chính, thay vì thay bằng deep net.
+
+params:
+  objective: "binary:logistic"
+  eval_metric: ["aucpr", "auc"]     # AUC-PR làm trọng tâm vì data mất cân bằng nặng
+  max_depth: 6
+  learning_rate: 0.05
+  n_estimators: 2000
+  subsample: 0.8
+  colsample_bytree: 0.8
+  min_child_weight: 3
+  gamma: 0.0
+  reg_alpha: 0.0
+  reg_lambda: 1.0
+  tree_method: "hist"
+  random_state: 42
+
+# Xử lý mất cân bằng lớp:
+# - scale_pos_weight = tự tính = (#negative / #positive) nếu "auto"
+# - Khi dùng dữ liệu đã được GAN+RL oversample, có thể set thấp hơn/1.0
+#   vì lớp thiểu số đã được bù đắp một phần bởi dữ liệu tổng hợp.
+imbalance:
+  scale_pos_weight: "auto"
+
+training:
+  early_stopping_rounds: 100
+  verbose_eval: 100
+
+explainability:
+  use_shap: true
+  shap_sample_size: 2000   # số mẫu lấy để tính SHAP (để không quá chậm)
+  top_k_features: 20

@@ -216,3 +216,37 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ============================================================
+# Project-specific ignores
+# ============================================================
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Data (download via scripts/download_data.py)
+data/raw/
+data/processed/
+data/augmented/
+data/splits/
+
+# Artifacts (generated during training)
+artifacts/models/*.pkl
+artifacts/models/*.pt
+artifacts/models/*.json
+artifacts/logs/*.log
+artifacts/logs/*.txt
+artifacts/plots/*.png
+artifacts/plots/*.pdf
+artifacts/reports/*.csv
+artifacts/reports/*.html
+
+# Kaggle credentials
+kaggle.json
+*.kaggle
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+*.ipynb
+

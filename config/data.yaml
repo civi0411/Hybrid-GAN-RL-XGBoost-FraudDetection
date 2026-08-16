@@ -1,0 +1,31 @@
+# ============================================================
+# data.yaml — Cấu hình dữ liệu (CHUNG CHUNG - sẽ tinh chỉnh sau)
+# ============================================================
+# Lưu ý: Toàn bộ phần data engineering / feature engineering chi tiết
+# cho IEEE-CIS (join transaction+identity, xử lý cột V1-V339, v.v.)
+# CHƯA được triển khai ở đây theo yêu cầu. src/data/* hiện chỉ cung
+# cấp các hàm generic (tự suy ra numeric/categorical theo dtype,
+# impute đơn giản, split theo thời gian hoặc random). Đây là nơi
+# duy nhất cần sửa khi bạn hoàn thiện phần EDA/feature engineering.
+
+files:
+  # Có thể trỏ tới 1 file duy nhất đã merge sẵn, hoặc để loader tự merge
+  # nhiều file (xem src/data/loader.py::load_raw_data)
+  transaction_file: "train_transaction.csv"
+  identity_file: "train_identity.csv"       # để null nếu không dùng
+  merge_key: "TransactionID"
+
+missing_values:
+  numeric_strategy: "median"      # median | mean | constant
+  categorical_strategy: "most_frequent"   # most_frequent | constant
+  numeric_fill_value: -999
+  categorical_fill_value: "missing"
+
+# Ngưỡng để loader tự động coi 1 cột numeric là "categorical" nếu
+# số giá trị unique thấp hơn ngưỡng này (heuristic đơn giản, generic)
+low_cardinality_threshold: 20
+
+# Các cột chắc chắn loại bỏ khỏi feature set (id, leakage, v.v.)
+drop_columns: []
+
+max_categorical_cardinality: 100   # cột categorical vượt ngưỡng -> hash/label-encode thay vì one-hot

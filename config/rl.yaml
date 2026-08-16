@@ -1,0 +1,62 @@
+# ============================================================
+# rl.yaml — Cấu hình RL Agent (bộ LỌC mẫu tổng hợp từ GAN)
+# ============================================================
+# Vai trò của RL trong pipeline: KHÔNG sinh dữ liệu, mà học cách CHỌN LỌC
+# trong số các mẫu GAN đã sinh ra (candidate pool), mẫu nào thực sự giúp
+# ích cho classifier, mẫu nào nên loại bỏ.
+#
+# Cơ sở lựa chọn (research-grounded):
+#   - Ye et al., "Synthetic Sample Selection via Reinforcement Learning"
+#     (MICCAI 2020, arXiv:2008.11331): dùng PPO, reward = validation
+#     accuracy của classifier sau khi train trên tập đã mở rộng bằng các
+#     mẫu synthetic được chọn. Cải thiện 8.1% / 2.3% so với việc thêm
+#     toàn bộ mẫu GAN sinh ra một cách ngẫu nhiên ("GAN Augmentation").
+#   - Gowda, "Synthetic Sample Selection for Generalized Zero-Shot
+#     Learning" (CVPRW 2023, arXiv:2304.02846): cùng ý tưởng, khẳng định
+#     cách tiếp cận "model-agnostic, data-agnostic" — áp dụng được cho
+#     dữ liệu bảng (tabular), không chỉ ảnh.
+#   - Điểm khác biệt so với 2 paper trên: XGBoost train rất nhanh (giây)
+#     so với CNN, nên ta CÓ THỂ retrain classifier thật ở cuối mỗi episode
+#     làm reward (không cần proxy), thay vì phải xấp xỉ.
+#
+# Thiết kế Environment (xem src/models/rl/environment.py):
+#   - state  : feature vector đã chuẩn hoá của 1 mẫu synthetic ứng viên
+#              + thống kê runtime (tỉ lệ đã chọn, kích thước tập hiện tại)
+#   - action : Discrete(2) — 0 = loại bỏ, 1 = giữ lại mẫu này
+#   - reward : sparse, chỉ trả ở bước cuối episode = delta(AUC-PR) giữa
+#              classifier train trên (train_gốc + mẫu đã chọn trong episode)
+#              so với classifier baseline (train trên train_gốc, cache sẵn)
+
+algorithm: "PPO"     # PPO được chọn vì ổn định hơn vanilla policy-gradient/REINFORCE
+                      # cho bài toán sequential accept/reject (Schulman et al., 2017)
+
+env:
+  episode_batch_size: 128     # số mẫu candidate xét trong 1 episode
+  max_episodes_per_update: 8  # số episode thu thập trước mỗi lần update policy
+  reward_metric: "average_precision"   # = AUC-PR, nhất quán với xgboost.yaml
+  reward_proxy_estimator: "fast_xgboost"   # bản XGBoost rút gọn để reward nhanh hơn
+  fast_xgboost_n_estimators: 150
+  fast_xgboost_max_depth: 4
+  normalize_reward: true
+
+ppo:
+  learning_rate: 0.0003
+  n_steps: 1024
+  batch_size: 128
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  ent_coef: 0.01     # khuyến khích khám phá vì reward rất sparse
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  policy_hidden_dims: [128, 128]
+
+training:
+  total_timesteps: 50000
+  seed: 42
+  checkpoint_every_n_updates: 10
+
+output:
+  save_dir: "artifacts/models/rl"
+  selected_samples_dir: "data/augmented/rl_selected"

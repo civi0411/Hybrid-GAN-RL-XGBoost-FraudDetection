@@ -1,0 +1,49 @@
+# ============================================================
+# gan.yaml — Cấu hình cho GAN sinh dữ liệu tổng hợp (fraud minority)
+# ============================================================
+# Lựa chọn kiến trúc: Conditional WGAN-GP (cWGAN-GP)
+#
+# Vì sao không dùng vanilla GAN / vanilla cGAN?
+#   - Nhiều nghiên cứu oversampling cho tabular data (Engelmann & Lessmann
+#     2021 "Conditional Wasserstein GAN-based Oversampling of Tabular Data
+#     for Imbalanced Learning"; CTGAN - Xu et al. 2019; CTAB-GAN+ - Zhao
+#     et al. 2022) đều chỉ ra WGAN-GP loss ổn định hơn hẳn vanilla GAN loss
+#     trên dữ liệu dạng bảng (tránh mode collapse, gradient biến mất khi
+#     dữ liệu categorical/numeric hỗn hợp và mất cân bằng nặng).
+#   - CTGAN/CTAB-GAN+ dùng mode-specific normalization cho numeric và
+#     conditional vector cho categorical -> ở đây ta dùng bản đơn giản hóa:
+#     numeric chuẩn hoá (StandardScaler/quantile) + categorical qua
+#     Gumbel-Softmax, có điều kiện (condition) là nhãn fraud/không fraud.
+#   - Model chỉ cần sinh cho lớp thiểu số (fraud=1) để phục vụ oversampling,
+#     tương tự "cWGAN-GP" trong GANbasedOversampling (Engelmann, 2021).
+
+architecture:
+  latent_dim: 64
+  condition_dim: 2          # one-hot của nhãn (fraud / not-fraud)
+  generator_hidden_dims: [256, 256, 128]
+  critic_hidden_dims: [256, 256, 128]
+  activation: "leaky_relu"
+  use_batchnorm: true
+  gumbel_temperature: 0.5   # cho categorical output (Gumbel-Softmax)
+
+training:
+  batch_size: 256
+  epochs: 200
+  n_critic: 5                # số bước update critic / 1 bước update generator (chuẩn WGAN-GP)
+  gradient_penalty_lambda: 10.0
+  lr_generator: 0.0002
+  lr_critic: 0.0002
+  betas: [0.5, 0.9]
+  weight_decay: 0.000001
+  early_stopping_patience: 20
+  log_every_n_steps: 50
+  checkpoint_every_n_epochs: 25
+
+sampling:
+  target_class: 1            # sinh thêm mẫu cho lớp fraud
+  oversample_ratio: 1.0      # 1.0 = sinh thêm bằng đúng số mẫu thiểu số hiện có
+  candidate_multiplier: 3    # sinh dư ra (x3) để RL agent có không gian lựa chọn/lọc
+
+output:
+  save_dir: "artifacts/models/gan"
+  generated_data_dir: "data/augmented"

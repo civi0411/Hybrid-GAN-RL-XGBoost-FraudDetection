@@ -1,0 +1,35 @@
+# ============================================================
+# base.yaml — Cấu hình toàn cục, được các config khác kế thừa
+# ============================================================
+
+project:
+  name: "gan-xgboost-rl-fraud-detection"
+  seed: 42
+  device: "auto"          # "auto" | "cpu" | "cuda"
+
+paths:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  augmented_dir: "data/augmented"
+  splits_dir: "data/splits"
+  artifacts_dir: "artifacts"
+  models_dir: "artifacts/models"
+  logs_dir: "artifacts/logs"
+  reports_dir: "artifacts/reports"
+  plots_dir: "artifacts/plots"
+
+logging:
+  level: "INFO"           # DEBUG | INFO | WARNING | ERROR
+  log_to_file: true
+  log_filename: "run.log"
+
+target_column: "isFraud"
+id_column: "TransactionID"
+time_column: "TransactionDT"   # null nếu dataset không có cột thời gian
+
+# Tỉ lệ chia dữ liệu khi KHÔNG có cột thời gian (fallback random split)
+split:
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  stratify: true
